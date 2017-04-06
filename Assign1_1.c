@@ -15,6 +15,8 @@ int main(int argc, char **argv)
 	int dims[2], coords[2], cyclic[2], reorder;
 	MPI_Comm comm2D;
 	MPI_Datatype blk
+	MPI_Request request;
+	MPI_Status status;
 	p = atoi(argv[1]);
 	N = atoi(argv[2]);
 	MPI_Init(&argc, &argv);
@@ -61,12 +63,17 @@ int main(int argc, char **argv)
 	    }
 	  MPI_Type_vector(blk_size,blk_size, N, MPI_DOUBLE, &blk);
 	  MPI_Type_commit(&blk);
+	  int blksqr; 
+	  blksqr = blk_size*blk_size;
 	  for (i = 0; i < sqrt_p; i++)
 	  {
 		  for (j = 0; j < sqrt_p; j++)
 		  {
 			  MPI_Cart_rank(comm2D, coords, &rank)
-			  MPI_Isend(A[i*N + blk_size*j], )
+			  MPI_Isend(A[i*N + blk_size*j], blksqr, blk, rank, rank, comm2D \
+			  , &request);
+			  MPI_Isend(B[i*N + blk_size*j], blksqr, blk, rank, rank+N, comm2D \
+			  , &request);
 		  }
 	  }
     }
