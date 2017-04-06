@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 		  for (j = 0; j < sqrt_p; j++)
 		  {
 			  MPI_Cart_rank(comm2D, coords, &rank)
-			  MPI_Isend()
+			  MPI_Isend(A[i*N + blk_size*j], )
 		  }
 	  }
     }
