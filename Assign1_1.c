@@ -12,7 +12,8 @@
 #include <string.h>
 #include <math.h>
 #include <mpi.h>
-#define print 0
+#include <time.h>
+#define print 1
 
 /* Function calculating matrix multiplication and adding to previous value*/
 void blk_multi(double *a,double *b, double *c, int dim)
@@ -91,6 +92,7 @@ int main(int argc, char **argv)
 		requestB = malloc(p*sizeof(MPI_Request));
 		
 		/* Initialize data */
+		srand(time(NULL));
 		for (i=0; i< N; i++) 
 		{
 			for (j=0; j<N; j++) 
@@ -223,9 +225,12 @@ int main(int argc, char **argv)
 	
 	if (myid == root)
 	{	
+		MPI_Status *sA, *sB;
+		sA = (MPI_Status*)malloc(p*sizeof(MPI_Status));
+		sB = (MPI_Status*)malloc(p*sizeof(MPI_Status));
 		/* Waiting for nonblocking send to complete.*/
-		MPI_Waitall(p, requestB, NULL);
-		MPI_Waitall(p, requestA, NULL);
+		MPI_Waitall(p, requestB, sB);
+		MPI_Waitall(p, requestA, sA);
 		
 		/* Allocating space for result matrix, C, in root.*/
 		C = malloc(N*N*sizeof(double));
