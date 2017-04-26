@@ -145,10 +145,11 @@ int main(int argc, char **argv)
 	}
 	
 	/* Recieving data in local buffers.*/
-	double *buffa, *buffb, *buffacpy, *tmp_c;
+	double *buffa, *buffb, *buffacpy, *buffbcpy, *tmp_c;
 	buffa = malloc(blksqr*sizeof(double));
 	buffb = malloc(blksqr*sizeof(double));
 	buffacpy = malloc(blksqr*sizeof(double));
+	buffbcpy = malloc(blksqr*sizeof(double));
 	tmp_c = malloc(blksqr*sizeof(double));
 	MPI_Recv(buffa, blksqr, MPI_DOUBLE, root, myid, comm2D, &status[0]);
 	MPI_Recv(buffb, blksqr, MPI_DOUBLE, root, N+myid, comm2D, &status[1]);
@@ -167,16 +168,21 @@ int main(int argc, char **argv)
 			
 			/* Copying local A block for broadcast to avoid overwriting original.*/
 			memcpy(buffacpy, buffa, blksqr*sizeof(double));
-			
+			memcpy(buffbcpy, buffb, blksqr*sizeof(double));
 			/* Broadcasting.*/
 			MPI_Bcast(buffacpy, blksqr, MPI_DOUBLE, coords[1], cart_row);
 			
-			/* Multiplying local copies of A and B placing them in a local C*/
-			blk_multi(buffacpy, buffb, tmp_c, blk_size);
-			
+
 			/* Shiftig B.*/
-			MPI_Sendrecv_replace(buffb, blksqr, MPI_DOUBLE, dest, 0, \
-									source, 0, cart_col, &status[0]);
+			MPI_Isend(buffbcpy, blksqr, MPI_DOUBLE, dest, dest, cart_col,  &request[0]);
+			MPI_Irecv(buffb, blksqr, MPI_DOUBLE, source, mycoords[0], \
+			cart_col, &request[1]);
+			/*MPI_Sendrecv_replace(buffb, blksqr, MPI_DOUBLE, dest, 0, \
+									source, 0, cart_col, &status[0]);*/
+			/* Multiplying local copies of A and B placing them in a local C*/
+			blk_multi(buffacpy, buffbcpy, tmp_c, blk_size);
+			MPI_Wait(&request[0], &status[0]);
+			MPI_Wait(&request[1], &status[1]);
 	}
 	
 	/* Sending each processors result to root processor.*/
