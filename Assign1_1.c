@@ -13,7 +13,7 @@
 #include <math.h>
 #include <mpi.h>
 #include <time.h>
-#define print 1
+#define print 0
 
 /* Function calculating matrix multiplication and adding to previous value*/
 void blk_multi(double *a,double *b, double *c, int dim)
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	
+
 	/* Recieving data in local buffers.*/
 	double *buffa, *buffb, *buffacpy, *buffbcpy, *tmp_c;
 	buffa = malloc(blksqr*sizeof(double));
@@ -153,11 +153,17 @@ int main(int argc, char **argv)
 	tmp_c = malloc(blksqr*sizeof(double));
 	MPI_Recv(buffa, blksqr, MPI_DOUBLE, root, myid, comm2D, &status[0]);
 	MPI_Recv(buffb, blksqr, MPI_DOUBLE, root, N+myid, comm2D, &status[1]);
+
 	
 	/* Calculating shift for matrix B.*/
 	int source, dest;
 	source = (mycoords[0]+1) % sqrt_p;
 	dest = (mycoords[0] + sqrt_p - 1) % sqrt_p;
+	
+	if (myid ==root) 	printf("Test with %d processors and %d x %d matrices\n", p, N, N);
+	for (int loop = 0; loop < 10; loop++){
+	double begin, end;
+	begin = MPI_Wtime();
 	
 	/* Fox's algorithm.*/
 	for (int stage = 0; stage < dims[0]; stage++)
@@ -184,7 +190,10 @@ int main(int argc, char **argv)
 			MPI_Wait(&request[0], &status[0]);
 			MPI_Wait(&request[1], &status[1]);
 	}
-	
+	if (myid == root){
+	end = MPI_Wtime();
+	printf("Time(%d) = %5.16lf\n", loop, end - begin);}
+	}
 	/* Sending each processors result to root processor.*/
 	MPI_Isend(tmp_c, blksqr, MPI_DOUBLE, root, myid, comm2D, &requestC);
 	
@@ -278,10 +287,13 @@ int main(int argc, char **argv)
 		}
 		#endif
 		free(C);
+
+
 	}
 	
 	/* Freeing memory local to all processors.*/
 	free(buffacpy);
+	free(buffbcpy);
 	free(tmp_c);
 	free(buffa);
 	free(buffb);
